@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC **Projeto:** Validador de URLs VTEX (Bemol)
 # MAGIC **Origem:** `bemolonline.backup_conteudo.agente_seo_db`
-# MAGIC **Destino (log):** `hive_metastore.tabelas_auxiliares.backup_de_validacao_de_url`
+# MAGIC **Destino (log):** `bemolonline.backup_conteudo.backup_de_validacao_de_url`
 # MAGIC **Volume por execução:** 50 SKUs (fase de observação inicial)
 # MAGIC
 # MAGIC ## Regras de negócio aplicadas (definidas e validadas nas sessões anteriores)
@@ -52,7 +52,7 @@ import time
 from datetime import datetime, timezone, timedelta
 
 TABELA_ORIGEM = "bemolonline.backup_conteudo.agente_seo_db"
-TABELA_LOG    = "hive_metastore.tabelas_auxiliares.backup_de_validacao_de_url"
+TABELA_LOG    = "bemolonline.backup_conteudo.backup_de_validacao_de_url"
 
 QTD_SKUS_POR_EXECUCAO = 150  # Lote de produção (agendado para a madrugada)
 

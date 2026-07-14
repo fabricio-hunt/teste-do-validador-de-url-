@@ -6,7 +6,7 @@
 # MAGIC
 # MAGIC Adaptado do modelo já em produção para Alt Text VTEX (mesmo padrão visual, SMTP e
 # MAGIC destinatários), lendo as métricas reais da **última execução** registrada em
-# MAGIC `hive_metastore.tabelas_auxiliares.backup_de_validacao_de_url`.
+# MAGIC `bemolonline.backup_conteudo.backup_de_validacao_de_url`.
 # MAGIC
 # MAGIC Pode ser executado de duas formas:
 # MAGIC - **Como task separada** após `02_orquestrador_main`, dentro do mesmo Databricks Job
@@ -33,7 +33,7 @@ PASSWORD     = dbutils.secrets.get(scope="smtp", key="password")  # noqa: F821
 # ─────────────────────────────────────────────────────────────
 # TABELA DE LOG
 # ─────────────────────────────────────────────────────────────
-TABELA_LOG    = "hive_metastore.tabelas_auxiliares.backup_de_validacao_de_url"
+TABELA_LOG    = "bemolonline.backup_conteudo.backup_de_validacao_de_url"
 TABELA_ORIGEM = "bemolonline.backup_conteudo.agente_seo_db"
 
 # ─────────────────────────────────────────────────────────────
@@ -79,7 +79,9 @@ def get_job_stats() -> dict:
     # A presença de valores NULL numa dessas colunas fazia o MAX() falhar nas execuções novas.
     col_tempo = F.coalesce(F.col("data_execucao"), F.col("timestamp")) if "data_execucao" in df.columns else F.col("timestamp")
 
-    execution_id = obter_execution_id_via_task_values()
+    # Comentado durante a fase de testes iterativos para driblar o cache persistente:
+    # execution_id = obter_execution_id_via_task_values()
+    execution_id = None
 
     if not execution_id:
         # Puxa inequivocamente o execution_id usando coalesce para não dar NULL nas novas
@@ -185,8 +187,10 @@ def build_email_html(stats: dict) -> str:
         badge_bg = "#c0392b"
         badge_label = "&#128680; ATENÇÃO — POSSÍVEL 404 (redirect falhou)"
     elif tem_erro_comum:
-        badge_bg = "#e67e22"
-        badge_label = "&#9888;&#65039; CONCLUÍDO COM ERROS"
+        # Se houver apenas erros comuns (que serão reprocessados), consideramos como uma execução 
+        # normal, mas podemos indicar que há itens para a próxima rodada.
+        badge_bg = "#27ae60" # Verde
+        badge_label = "&#9989; CONCLUÍDO (RETENTATIVAS PENDENTES)"
     else:
         badge_bg = "#27ae60"
         badge_label = "&#9989; EXECUÇÃO SEM ERROS"
@@ -419,9 +423,8 @@ def send_report_email() -> None:
 
     if tem_erro_critico:
         subject_prefix = "🚨 ATENÇÃO"
-    elif tem_erro_comum:
-        subject_prefix = "⚠️ COM ERROS"
     else:
+        # Erros comuns não alteram o prefixo para erro, já que serão reprocessados.
         subject_prefix = "✅ SUCESSO"
 
     subject = (
