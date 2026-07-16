@@ -1,4 +1,4 @@
-# VTEX SEO URL Normalizer - Bemol Automation
+# URL Integrity Engine - Bemol Automation
 
 This repository contains the Databricks automation scripts used for normalizing and correcting product URLs (slugs) in VTEX to improve SEO consistency for Bemol.
 
