@@ -28,6 +28,14 @@ Secrets and credentials must not be stored in the repository. The project strict
 - `SMTP_PASSWORD`: Retrieved securely via `dbutils.secrets.get(scope="smtp", key="password")`.
 - `VTEX_APP_KEY` / `VTEX_APP_TOKEN`: Required for VTEX Catalog API communication.
 
+## Redirect Chain Mitigation (Test)
+
+To prevent a double 301 redirect chain caused by VTEX's native auto-lowercase rule (e.g., `Old-Slug` -> 301 -> `old-slug` -> 301 -> `new-slug`), the automation now registers **two** 301 redirects for each updated product:
+1. Exact original slug (preserving uppercase characters) to the final slug.
+2. Lowercased original slug to the final slug.
+
+This approach attempts to intercept the redirect directly from the original uppercase URL to the final slug, bypassing the intermediate auto-lowercase step. If issues arise with redirect limit quotas or unexpected loop checker errors, revisit step 8 in `app.py`.
+
 ## Execution
 
 For local testing, notebooks can be run iteratively. The fallback mechanics ensure the latest logs are retrieved from the Delta tables even if Job Contexts (`TaskValues`) are not available. In production, run this under a scheduled Databricks Workflow batch.

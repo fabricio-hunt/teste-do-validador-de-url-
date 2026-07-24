@@ -270,30 +270,31 @@ def processar_sku(sku_vtex: str) -> dict:
         #    (regra confirmada: só usaríamos destino alternativo para produto inativo,
         #    mas produto inativo já foi filtrado no passo 3 e nunca chega aqui)
         path_destino = f"/{slug_final}/p"
+        path_atual_exato = f"/{slug_atual}/p"
+        path_atual_min = f"/{slug_atual.lower()}/p"
         linha["redirect_destino"] = path_destino
 
-        if path_atual == path_destino:
-            # Se a única mudança foi de maiúscula para minúscula (slug_atual vs slug_normalizado),
-            # o path_atual (que usa .lower()) será igual ao path_destino.
-            # A VTEX bloqueia redirects para a mesma URL (Loop checker), então pulamos a criação.
-            linha["redirect_confirmado"] = True
-            observacoes.append("Redirect ignorado: a URL de origem e destino seriam as mesmas (apenas case diferente no slug original).")
-        else:
-            resultado_redirect = criar_redirect(TOKEN_VTEX, path_atual, path_destino)
+        redirects_a_criar = []
+        if path_atual_exato != path_destino:
+            redirects_a_criar.append(path_atual_exato)
+        if path_atual_min != path_destino and path_atual_min != path_atual_exato:
+            redirects_a_criar.append(path_atual_min)
 
-            if resultado_redirect["erro"]:
-                # ⚠️ CASO CRÍTICO: PUT já confirmado, mas redirect falhou.
-                # Isso significa que a URL antiga já não resolve mais (LinkId mudou),
-                # e ainda não existe redirect cobrindo o caminho antigo -> 404 REAL
-                # já está no ar para quem acessar a URL antiga. Tratado como
-                # ERRO_REDIRECT (não ERRO_API) para ser identificável e tratado com
-                # prioridade alta no relatório por e-mail.
-                _definir_erro(
-                    linha, "ERRO_REDIRECT",
-                    f"PUT confirmado, mas redirect falhou: {resultado_redirect.get('msg')}",
-                    observacoes,
-                )
-                return _finalizar(linha, inicio)
+        if not redirects_a_criar:
+            linha["redirect_confirmado"] = True
+            observacoes.append("Redirect ignorado: as URLs de origem e destino seriam as mesmas (apenas case diferente no slug original).")
+        else:
+            for path_origem in redirects_a_criar:
+                resultado_redirect = criar_redirect(TOKEN_VTEX, path_origem, path_destino)
+
+                if resultado_redirect["erro"]:
+                    # ⚠️ CASO CRÍTICO: PUT já confirmado, mas redirect falhou.
+                    _definir_erro(
+                        linha, "ERRO_REDIRECT",
+                        f"PUT confirmado, mas redirect falhou para {path_origem}: {resultado_redirect.get('msg')}",
+                        observacoes,
+                    )
+                    return _finalizar(linha, inicio)
                 
             linha["redirect_confirmado"] = True
         linha["status"] = "SUCESSO"
